@@ -1,0 +1,193 @@
+# An Archive of Pining Stats
+import  Chart, { DataContextProvider, MetaSelector, useChartData } from '../components/Chart.tsx'
+import { From, To, SampleSize, Periodically, ShowCombinedTagsIfNotAlreadySelected } from '../components/contextual.tsx'
+import DownloadButtons from '../components/DownloadButtons.tsx'
+import { Callout } from 'nextra-theme-docs'
+
+import { Steps } from 'nextra-theme-docs'
+ 
+Welcome! This is a short and hastily thrown together project to extract trend information about certain Pining-related tags from the [Ao3 2021 Selective data dump for fan statisticians](https://archiveofourown.org/admin_posts/18804)
+
+<DataContextProvider>
+## About the source data
+<Callout emoji="🤓">
+  This is an overview, more detailed information [here](#source-data)
+</Callout>
+
+On March 3rd, 2021, the Archive of Our Own released a [Selective data dump for fan statisticians](https://archiveofourown.org/admin_posts/18804). This data dump contains a subset of the data from the Archive, including all works, as all tags. 
+The availbable data spans between **<From />** and **<To />**.
+
+The total sample size that this project covers is **<SampleSize/>** works.
+
+### Tags
+Ao3 uses a tagging system that allows users to tag their works with as many tags as they want. This means that a work can be tagged with all three of the tags above, or just one of them. This project is focused on the "yearning" tag and it's related tags. 
+The following tags are included in this project:
+
+- [Yearning](https://archiveofourown.org/tags/yearning)
+- [Pining](https://archiveofourown.org/tags/pining)
+- [Slow Burn](https://archiveofourown.org/tags/slow%20burn)
+
+Ao3 has a freeform tagging system, which means that users can tag their works with whatever tags they want. For example, the following tags are all variations of the "`pining`" tag:
+  -  "_Unacknowledged pining_"
+  -  "_Unnecessary Pining_"
+  -  "_Vágyakozás_"
+  -  "_暗恋_"
+  -  "_Y E A R N I N G_"
+  -  "_Yearning_"
+  -  "_Yearning and Longing_"
+  -  "_Yearning to the MAX_"
+  -  "_frustrated pining_"
+  -  "_gay ass yearning_"
+  -  "_Pining!_"
+  -  "_PINING!!_"
+  -  "_PINING!!!_"
+  -  "_Pining???_"
+  -  "_pining??_"
+  -  "_pining?_"
+
+Thankfully, Ao3 uses [_Tag Wranglers_](https://archiveofourown.org/faq/tags?language_id=en#wrangling) who work with categorizing and merging together related tags, making my work a lot easier. I have been trying to use [Canonical Tags](https://archiveofourown.org/faq/tags?language_id=en#canonicalhow) as much as possible. 
+
+Please note that the [Yearning](https://archiveofourown.org/tags/yearning) tag is folded into the "Pining" tag, and are by Ao3 considered Synonyms.
+
+## Presentation
+  #### Chart Controls
+  <MetaSelector />
+  ### A history of yearning
+  This is a chart representing how many number of works for each of the yearning related tags are published **<Periodically />**.
+  <Chart />
+  
+  ### Absolute yearning in context
+  The below chart is with the added line of EVERYTHING EVER SUBMITTED TO AO3 (of which yearning takes up a non-trivial percentage). <ShowCombinedTagsIfNotAlreadySelected />
+  <Chart showTotals />
+  
+  ### Relative yearning
+  Since all of Ao3 has seen an increase in works over the years, it might be more interesting to see the relative increase in works for each of the tags. This chart shows the **<Periodically />** percentage of works, compared to the total number of works for that period.
+  
+  <ShowCombinedTagsIfNotAlreadySelected />
+  <Chart useRelativeData />
+
+  ### Relative yearning in context
+  This chart compares the relative increase in works for each of the tags, compared to the total number of works for that period, with the relative increase in works for all of Ao3. <ShowCombinedTagsIfNotAlreadySelected /> Please note that 
+  <Callout emoji="🤓">
+    This chart compares two different types of data, and as such, the Y-axis is not directly comparable between the two lines. 
+    
+    The gray line is how many works has been submitted to Ao3, and is meant to give an idea of the growth rate of the website, and the other lines show what percentage of those works are tagged with the selected tags.
+  </Callout>
+  <Chart showTotals useRelativeData />
+  ### Relative yearning compared with popular cousins.
+  In this chart we compare the `yearning` related tags to some of the most popular tags on Ao3; _`Fluff`_, _`AU`_ and _`Angst`_, in order to be able to compare the growth of yearning with what might be expected on the website.
+  <Chart useRelativeData withComparison />
+
+
+
+## Method
+
+<Steps>
+ 
+### Download and extract the data dump
+ 
+The data was extracted from the [Ao3 2021 Selective data dump for fan statisticians](https://archiveofourown.org/admin_posts/18804) using a custom script. 
+In its initial form the data comes in two files, `tags-20210226.csv` and `works-20210226.csv`.
+
+Processing these many records takes a long time, especially when parsing is involved, so the data has to be simplified.
+
+#### `tags-20210226.csv (14,467,138 records)`
+| id | type| name| canonical| cached_count| merger_id |
+| :----- | :----: | :----: | :----: |:----: |  ----: |
+| 1 | Media| TV Shows| true| 910| 
+| 2 | Media| Movies| true| 1164| 
+| 3 | Media| Books & Literature| true| 134| 
+| 4 | Media| Cartoons & Comics & Graphic Novels| true| 166| 
+| ... | ...| ... | ... | ... | 
+|6716|Character|Hillary Clinton|true|659||
+|6717|Relationship|Hillary Clinton/Barack Obama|true|3||
+|6719|Freeform|**Pining**|true|122227||
+|6720|Relationship|Clark Kent/OFC|false|8|11395045|
+|6721|Relationship|Redacted|false|2|12721|
+
+#### `works-20210226.csv (7,269,693 records)`
+|creation date|language|restricted|complete|word_count|tags |
+| :----- | :----: | :----: | :----: | :----: | :---- |
+|2021-02-26|en|false|true|388|10+414093+1001939+4577144+1499536+110+4682892+21+16 |
+|2021-02-26|en|false|true|1638|10+20350917+34816907+23666027+23269305+23269308+25382106+54629895+265399+105139+6207045+2509086+4483454+21741408+2791+21+16 |
+|2021-02-26|en|false|true|1502|10+10613413+9780526+3763877+3741104+7657229+30052928+54862740+54862743+3958232+3741113+13041709+8689774+39239518+21073668+36386338+54862746+54862749+54862752+24+14 |
+|2021-02-26|en|false|true|100|10+15322+54862755+20595867+32994286+663+4717518+2096+54862758+54862761+54862764+54862767+21+16 |
+| ... | ...| ... | ... | ... | 
+ 
+### Filter out irrelevant data
+ 
+In order to make this dataset more manageable, we filter out all tags that matches the following criteria:
+
+- The tag is not of "Freeform" type, which means that it is not a user-created tag.
+- The tag is not related one of the tags below, and doesn't have a canonical related tag: 
+  * [Yearning](https://archiveofourown.org/tags/yearning)
+  * [Pining](https://archiveofourown.org/tags/pining)
+  * [Slow Burn](https://archiveofourown.org/tags/slow%20burn)
+- The tag wasn't selected as "Comparable" to yearning, in order to be able to compare the growth of yearning with what might be expected on the website.
+  * [Fluff](https://archiveofourown.org/tags/fluff)
+  * [AU](https://archiveofourown.org/tags/alternate%20universe)
+  * [Angst](https://archiveofourown.org/tags/angst)
+
+### Count each of the ~7.2 million works, and relevant tags
+
+This step is just number crunching, counting the following statistics:
+  - How many works are published per day per selected tag
+  - How many works are published per day in total
+  - How many works are published per day per selected tag, compared to the total number of works published that day (To determine relative growth rate)
+  - How many works are published per day, compared to the total number of works ever (To determine growth rate)
+ 
+</Steps>
+
+## Downloads
+
+### CSV Files
+
+<DownloadButtons />
+
+## Source data
+
+On March 3rd, 2021, the Archive of Our Own released a [Selective data dump for fan statisticians](https://archiveofourown.org/admin_posts/18804). This data dump contains a subset of the data from the Archive, including all works, as all tags. 
+The availbable data spans between **<From />** and **<To />**.
+
+The total sample size that this project covers is **<SampleSize/>** works.
+
+### `tags-20210226.csv (14,467,138 records)`
+####  ID
+The ID of the tag
+####  Type 
+- Media - A tag that describes the media type of the work, such as "TV Shows" or "Movies"
+- Rating - A tag that describes the rating of the work, such as "Mature" or "Explicit"
+- ArchiveWarning - A tag that describes the archive warning of the work, such as "Creator Chose Not To Use Archive Warnings" or "Graphic Depictions Of Violence"
+- Category - A tag that describes the category of the work, such as "F/M" or "Multi"
+- Character - A tag that describes the character of the work, such as "Harry Potter" or "Hermione Granger"
+- Fandom - A tag that describes the fandom of the work, such as "Harry Potter - J. K. Rowling" or "Marvel Cinematic Universe"
+- Relationship - A tag that describes the relationship of the work, such as "Harry Potter/Draco Malfoy" or "James Potter/Lily Evans Potter"
+- Freeform - A user created tag, such as "Yearning" or "Pining"
+- UnsortedTag - I don't know what this is.
+
+####  Name
+Name of the tag
+####  Canonical
+Whether or not the tag is a canonical tag, e.g. the "main" tag for a group of tags, like "Yearning" is for "Pining":
+![Selective data dump for fan statisticians](/related.png)
+All of the above are considered synonyms of "Pining", and are folded into the "Pining" tag.
+####  Cached Count
+The rough number of works that are tagged with this tag.
+####  Merger ID
+If the tag is not canonical, then this is the ID of the canonical tag that it is folded into.
+ 
+### `works-20210226.csv (7,269,693 records)`
+#### Creation date
+Date of creation, in the format `YYYY-MM-DD`
+#### Language
+Language of the work, in the format `en` for English, `fr` for French, etc.
+#### Restricted
+Whether or not the work is restricted to logged in users only.
+#### Complete
+Whether or not the work is marked as complete.
+#### Word Count
+The word count of the work.
+#### Tags
+IDs of the tags that the work is tagged with, separated by `+`.
+
+</DataContextProvider>
