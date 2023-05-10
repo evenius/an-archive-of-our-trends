@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "export": "next build && next export",
+    "export": "NODE_OPTIONS=\"--max_old_space_size=8192\"; next build && next export",
     "generate": "rm -rf public/data/* && tsc -p script/tsconfig.json && node --max-old-space-size=8192 script/tmp_build/index.js && rm -rf script/tmp_build"
   },
   "dependencies": {
