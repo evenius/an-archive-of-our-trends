@@ -10,7 +10,7 @@ const withNextra = require('nextra')({
 module.exports = withNextra({
   output: 'export',
   distDir: 'docs',
-  assetPrefix: isProd ? '/an-archive-of-our-trends/' : '',
+  basePath: isProd ? '/an-archive-of-our-trends' : '',
   images: {
     unoptimized: true,
   },
