@@ -10,6 +10,10 @@ This is a project written in NextJS for creating documentation with [Nextra](htt
 
 [![](.github/screenshot.png)](https://nextra-docs-template.vercel.app)
 
+## View the website
+
+[**Visit An Archive of our trends HERE →**](https://evenius.github.io/an-archive-of-our-trends/)
+
 ## Quick Start
 
 1. Clone this project
