@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "export": "next build && next export",
-    "publish": "git checkout gh-pages && git merge main && npm run export && git add docs/* && git commit -a -m 'Publish gh-pages' && git push",
+    "publish": "git checkout gh-pages && git merge main && npm run export && git add docs/* && git commit -a -m 'Publish gh-pages' && git push && git checkout main",
     "generate": "rm -rf public/data/* && tsc -p script/tsconfig.json && node --max-old-space-size=8192 script/tmp_build/index.js && rm -rf script/tmp_build"
   },
   "dependencies": {
