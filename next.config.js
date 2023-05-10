@@ -8,7 +8,9 @@ const withNextra = require('nextra')({
 })
 
 module.exports = withNextra({
-  assetPrefix: isProd ? '/your-github-repo-name/' : '',
+  output: 'export',
+  distDir: 'docs',
+  assetPrefix: isProd ? '//an-archive-of-our-trends/' : '',
   images: {
     unoptimized: true,
   },
