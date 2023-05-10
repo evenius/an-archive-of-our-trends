@@ -60,6 +60,6 @@ export function DownloadQueerness() {
 function DownloadButton({filename, size}: {filename: string, size: string}) {
   return <LinkButton href={filename} download >
       <span><FA icon={faCircleDown} /></span>
-      <span>{filename}<br/><small>{size}</small></span>
+      <span>data/{filename}<br/><small>{size}</small></span>
     </LinkButton>
 }
