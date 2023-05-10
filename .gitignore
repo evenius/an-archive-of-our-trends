@@ -1,3 +1,10 @@
 .next
 node_modules
 .DS_Store
+tmp_build
+
+## Do not commit these giant files.
+tags.csv
+works.csv
+tags-20210226.csv
+works-20210226.csv

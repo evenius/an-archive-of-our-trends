@@ -1,5 +1,5 @@
 import React, { CSSProperties, MutableRefObject, useEffect, useMemo, useRef, useState } from 'react';
-import works from '../pages/works.json';
+
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -13,13 +13,18 @@ import {
   Legend,
   TimeScale,
   DateAdapter,
+  Filler,
 } from 'chart.js';
-import { startOfWeek, startOfMonth, startOfQuarter, startOfYear, format, addWeeks } from 'date-fns'
+
+
+import { format, addWeeks } from 'date-fns'
 import styled from 'styled-components';
 
 import 'chartjs-adapter-date-fns';
-import Button from './Button';
 import { nform } from './contextual';
+import { DataContext, GroupBy, SetType } from '../context/data';
+import { ButtonGroup } from './ChartFilter';
+import Button from './Button';
 
 ChartJS.register(
   Tooltip,
@@ -30,163 +35,11 @@ ChartJS.register(
   LineElement,
   LinearScale,
   PointElement,
+  Filler,
   Legend
 );
 
-export const DataContext = React.createContext<ReturnType<typeof useChartData>>(null);
-
-export function DataContextProvider(props: {children: React.ReactNode}) {
-  let data = useChartData();
-  return <DataContext.Provider value={data}>
-    {props.children}
-  </DataContext.Provider>
-}
-
-type GroupBy = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'yearly';
-
-const defaultGroupBy = 'quarterly';
-function getGroupByFn (groupBy: GroupBy) {
-  switch(groupBy) {
-    case 'daily':
-      return (d: Date) => d;
-    case 'weekly':
-      return startOfWeek;
-    case 'monthly':
-      return startOfMonth;
-    case 'quarterly':
-      return startOfQuarter;
-    case 'yearly':
-      return startOfYear;
-  }
-}
-let bla = 'rgb(75, 192, 192)';
-function createParser (groupBy: GroupBy, meta: typeof works['_meta']) {
-  const startOf = getGroupByFn(groupBy)
-  const cutoff = startOf(new Date(meta.end)).getTime();
-  
-  return (label: string, work: Array<[string, number]>, color: string, alg: 'sum' | 'avg' = 'sum') => {
-    const dateGroups = work
-      .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
-      .reduce((dateGroups, [date, value]) => {
-  
-        const aggDate = startOf(new Date(date)).getTime();
-
-        if(aggDate >= cutoff) {
-          return dateGroups;
-        }
-
-        const { count, sum } = dateGroups.get(aggDate) ?? {count: 0, sum: 0};
-  
-        dateGroups.set(aggDate, {
-          count: count + 1,
-          sum: sum + value,
-        });
-  
-        return dateGroups;
-      }, new Map<number, { count: number, sum: number }>())
-  
-      let data = (alg === 'sum') ?
-        Array.from(dateGroups.entries()).map(([date, value]) => ({ x: date, y: value.sum})) :
-        Array.from(dateGroups.entries()).map(([date, value]) => ({ x: date, y: (value.sum / value.count)}))
-  
-      return {
-        data,
-        label,
-        borderColor: color ? color : undefined,
-        tension: 0.5,
-      }
-  }
-}
-
-
-const piningColors = [
-  '#FA5246',
-  '#F551CE',
-  '#C73EDE',
-  '#AF46FA',
-  '#DE3E69',
-]
-// '#a71544'
-
-const comparisonColors = [
-  '#44D3EB',
-  '#288A7D',
-  '#4BDEA1',
-  '#47F57B',
-  '#44EB47',
-]
-
-function useChartData(initialGroupBy: GroupBy = defaultGroupBy) {
-
-  const [ groupBy, setGroupBy ] = useState<GroupBy>(initialGroupBy)
-  const [ selectedSets, setDataSets ] = useState<Array<'grandTotal' | 'setTotal' | 'tagSets'>>(['tagSets'])
-
-  let renderData = useMemo(() => {
-    const { _meta, _totals, _totalGrowth, piningData, comparisonTags,  }  = works
-    const {
-      _relativeToTotal,
-      _summed,
-      ...tags
-    } = piningData
-
-    const {
-      _relativeToTotal: _compRelative,
-      _summed: _compSummed,
-      ...compTags
-    } = comparisonTags
-    
-    const keys = Object.keys(tags);
-    const compKeys = Object.keys(compTags);
-
-    const parseDataSet = createParser(groupBy, _meta)
-    
-    
-    const grandTotal = parseDataSet("Total works - Ao3", _totals as Array<[string, number]>, '#272727');
-    const totalGrowth = parseDataSet("Total growth - Ao3", _totalGrowth as Array<[string, number]>, '#272727', 'avg');
-    
-    const setTotal = parseDataSet("Combined yearning", _summed as Array<[string, number]>,'#a71544');
-    const relativeSetTotal = parseDataSet("Yearning relative to total", _relativeToTotal as Array<[string, number]>, '#531321', 'avg');
-    const tagSets = keys.map((key, i) => {
-        return parseDataSet(key, piningData[key].dates as Array<[string, number]>, piningColors[i]!);
-    })
-    const relativeTagSets = keys.map((key, i) => {
-        return parseDataSet(key + " of total", piningData[key].datesRelative as Array<[string, number]>, piningColors[i]!, 'avg');
-    })
-    
-
-    const comparisonTagSets = compKeys.map((key, i) => {
-      return parseDataSet(key, compTags[key].dates as Array<[string, number]>, comparisonColors[i]!);
-    })
-    const relativeComparisonTagSets = compKeys.map((key, i) => {
-        return parseDataSet(key + " of total", compTags[key].datesRelative as Array<[string, number]>, comparisonColors[i]!, 'avg', );
-    })
-
-    return {
-      meta: _meta,
-      tagSets, 
-      comparisonTagSets,
-
-      setTotal,
-      grandTotal,
-      totalGrowth,
-      
-      relativeSetTotal,
-      relativeTagSets,
-      relativeComparisonTagSets,
-    }
-  }, [ groupBy ])
-
-  return {
-    ...renderData,
-    groupBy,
-    setGroupBy,
-    selectedSets,
-    setDataSets,
-  }
-}
-
-
-const makeChartOptions = (isRelative: boolean, groupBy: GroupBy) => {
+const makeChartOptions = (isRelative: boolean, groupBy: GroupBy, stacked?: boolean) => {
   return {
     parsing: false,
     responsive: true,
@@ -195,6 +48,8 @@ const makeChartOptions = (isRelative: boolean, groupBy: GroupBy) => {
           type: 'time',
       },
       y: {
+        max: (stacked ? 1 : undefined ),
+        stacked,
         ticks: {
             // Include a dollar sign in the ticks
             callback: function(value: number, index, ticks: {value: number, label: string}[]) {
@@ -213,10 +68,12 @@ const makeChartOptions = (isRelative: boolean, groupBy: GroupBy) => {
     }
   },
     plugins: {
+      filler: {
+
+      },
       tooltip: {
         callbacks: {
           title: function(context) {
-            console.log(context)
             return context.map(({raw, label}) => {
               if(raw) {
                 let date = new Date(raw.x);
@@ -281,53 +138,63 @@ const makeChartOptions = (isRelative: boolean, groupBy: GroupBy) => {
 
 
 
-type ChartOptions = { showTotals?: boolean, useRelativeData?: boolean, withComparison?: boolean }
+type ChartOptions = { useRelativeData?: boolean, stacked?: boolean, showArea?: boolean, groupBy: GroupBy,  }
 
-function useChart(ref: MutableRefObject<HTMLCanvasElement>, options: ChartOptions) {
+function useChart(ref: MutableRefObject<HTMLCanvasElement>, selectedSets: SetType[], options: ChartOptions) {
 
   let chartRef = useRef<ChartJS>(null);
+
   const {
-    selectedSets,
     grandTotal, 
     totalGrowth,
+    
     setTotal,
     relativeSetTotal,
+
     tagSets,
     relativeTagSets,
+
+    queerTagSets,
+    relativeQueerTagSets,
+
     comparisonTagSets,
     relativeComparisonTagSets,
     groupBy
   } = React.useContext(DataContext);
 
-  const showTotals = options.showTotals ?? false;
-  const useRelativeData = options.useRelativeData ?? false;
+  // const showTotals = options.showTotals ?? false;
+  const useRelativeData = !!options.useRelativeData;
+  const showArea = !!options.showArea;
 
   const datasets = useMemo(() => {
     let sets = selectedSets.reduce((sets, key) => {
-
       switch(key) {
         case 'grandTotal':
-          sets.push(useRelativeData ? totalGrowth :  grandTotal);
+          sets.push(...(useRelativeData ? totalGrowth :  grandTotal));
           break;
         case 'setTotal':
-          sets.push(useRelativeData ? relativeSetTotal : setTotal);
+          sets.push(...(useRelativeData ? relativeSetTotal : setTotal));
           break;
         case 'tagSets':
           sets.push(...(useRelativeData ? relativeTagSets : tagSets));
           break;
-      }
-
-      if(!sets.includes('grandTotal') && showTotals) {
-        sets.push(useRelativeData ? totalGrowth :  grandTotal);
+        case 'comparisonTagSets':
+          sets.push(...(useRelativeData ? relativeComparisonTagSets : comparisonTagSets))
+          break;
+        case 'queerTagSets':
+          if(useRelativeData && selectedSets.length > 1) throw new Error("Queer tag data is so far only relative to total yearning, not to other tags.");
+          sets.push(...(useRelativeData ? relativeQueerTagSets : queerTagSets))
+          break;
       }
       return sets;
     }, [])
-
-    if(options.withComparison) {
-      sets.push(...(useRelativeData ? relativeComparisonTagSets : comparisonTagSets))
+    if(showArea) {
+      sets.forEach(set => {
+        set.fill = 'start';
+      })
     }
     return sets
-  }, [ showTotals, selectedSets, grandTotal, setTotal, tagSets ])
+  }, [ selectedSets, grandTotal, setTotal, tagSets ])
 
   useEffect(() => {
 
@@ -341,7 +208,7 @@ function useChart(ref: MutableRefObject<HTMLCanvasElement>, options: ChartOption
       ref.current,
       {
         // @ts-ignore
-        options: makeChartOptions(!!options.useRelativeData, groupBy),
+        options: makeChartOptions(!!options.useRelativeData, groupBy, !!options.stacked),
         type: 'line',
         data: { datasets }
       }
@@ -351,80 +218,53 @@ function useChart(ref: MutableRefObject<HTMLCanvasElement>, options: ChartOption
   }, [ datasets ])
 }
 
-const ButtonGroup = styled.div`
-  display: flex;
-  flex-direction: row;
-  button {
-    border-radius: none;
-    &:first-child {
-      border-top-left-radius: 4px;
-      border-bottom-left-radius: 4px;
-    }
-    &:last-child {
-      border-top-right-radius: 4px;
-      border-bottom-right-radius: 4px;
-    }
-  }
-`
-
-const Controls = styled.div`
-  display: flex;
-  flex-direction: column;
-  background-color: rgba(0, 0, 0, 0.05);;
-  border: 1px solid #e2e8f0;
-  padding: 1rem;
-  border-radius: 4px;
-  margin-bottom: 2rem;
-  p {
-    font-weight: bold;
-    margin-bottom: 0.5rem;
-  }
-  small {
-    font-style: italic;
-    width: 65%;
-    min-width: 300px;
-    line-height: 1.5rem;
-
-  }
-`
-
-export function MetaSelector(props: {updateSelection: (key: GroupBy) => void}) {
-
-  let { setGroupBy, setDataSets, groupBy, selectedSets } = React.useContext(DataContext);
-
-  return <Controls>
-    <p>Group data by dates</p>
-    <ButtonGroup>
-      <Button onClick={() => setGroupBy('daily')} className={ (groupBy === 'daily' ? 'selected ': '')}>Day</Button>
-      <Button onClick={() => setGroupBy('weekly')} className={ (groupBy === 'weekly' ? 'selected ': '')}>Week</Button>
-      <Button onClick={() => setGroupBy('monthly')} className={ (groupBy === 'monthly' ? 'selected ': '')}>Month</Button>
-      <Button onClick={() => setGroupBy('quarterly')} className={ (groupBy === 'quarterly' ? 'selected ': '')}>Quarter</Button>
-      <Button onClick={() => setGroupBy('yearly')} className={ (groupBy === 'yearly' ? 'selected ': '')}>Year</Button>
-    </ButtonGroup>
-    <small>Shorter intervals = slower but more precise. <br/> Data is cut off for incomplete periods i.e. If "yearly" is selected all data for 2021 is truncated</small>
-    <br/>
-    <p>Tag groupings</p>
-    <ButtonGroup>
-      <Button onClick={() => setDataSets(['setTotal'])} className={ (JSON.stringify(selectedSets) === '["setTotal"]' ? 'selected ': '')}>Show combined tags</Button>
-      <Button onClick={() => setDataSets(['tagSets'])} className={ (JSON.stringify(selectedSets) ==='["tagSets"]'  ? 'selected ': '')}>Show tags individually</Button>
-      <Button onClick={() => setDataSets(['setTotal', 'tagSets'])} className={ (JSON.stringify(selectedSets) === '["setTotal", "tagSets"]'  ? 'selected ': '')}>Show both combined and individual tags</Button>
-    </ButtonGroup>
-    <small>
-      Combined means all tags are added together. <br/>Individual means each tag is shown separately.
-    </small>
-  </Controls>
-}
-
 const ChartWrapper = styled.div`
   margin: 1.5rem 0;
 `
 
-export default function Graph (props: ChartOptions) {
+function getSelectedSets(selected?: SetType[]) {
+  let individual = false;
+  let combined = false;
+  if(!selected) return 'individual'
+  for (const set of selected) {
+    if(set === 'setTotal') {
+      combined = true;
+    } else if(set === 'tagSets') {
+      individual = true;
+    }
+    if(individual && combined) { break }
+  }
+  return individual && combined ? 'both' : (combined ? 'combined' : 'individual');
+}
+
+type TagSetView = 'individual' | 'combined' | 'both' | 'none'
+
+export default function Graph ({ defaultSet, setTypes, hideGroupingOptions, ...props}: ChartOptions & { hideGroupingOptions?: boolean, setTypes?: SetType[], defaultSet?: TagSetView }) {
 
   let chartRef = useRef<HTMLCanvasElement>(null);
-  useChart(chartRef, props); 
+  const [ chartView, setViewedSets ] = useState<TagSetView>(defaultSet ?? 'individual');
+
+  const linesToShow = useMemo(() => {
+    const mainCharts = (chartView === 'none' ? [] : chartView === 'combined' ? ['setTotal'] : chartView === 'individual' ? ['tagSets'] : ['setTotal', 'tagSets'] ) as SetType[];
+    return setTypes ? [
+      ...mainCharts,
+      ...setTypes
+    ] : mainCharts
+  }, [ setTypes , chartView ])
+
+  useChart(chartRef, linesToShow, props); 
 
   return <ChartWrapper>
     <canvas id="mainChart" ref={chartRef} /> 
+    {!hideGroupingOptions && <>
+      <br/>
+      <p><b>Tag groupings</b></p>
+      <ButtonGroup>
+        <Button onClick={() => setViewedSets('combined')} className={ (chartView === 'combined' ? 'selected ': '')}>Show combined tags</Button>
+        <Button onClick={() => setViewedSets('individual')} className={ (chartView ==='individual'  ? 'selected ': '')}>Show tags individually</Button>
+        <Button onClick={() => setViewedSets('both')} className={ (chartView === 'both'  ? 'selected ': '')}>Show both combined and individual tags</Button>
+      </ButtonGroup>
+    </>
+    }
   </ChartWrapper>
 }

@@ -3,7 +3,7 @@ import {
   format
 } from 'date-fns'
 
-import { DataContext } from "./Chart";
+import { DataContext } from "../context/data";
 import { capitalise } from "../util/text";
 import Button from "./Button";
 
@@ -36,15 +36,4 @@ export function ShowCombined () {
   const { groupBy } = React.useContext(DataContext);
 
   return capitalise(groupBy);
-}
-
-export function ShowCombinedTagsIfNotAlreadySelected () {
-
-  const { selectedSets, setDataSets } = React.useContext(DataContext);
-
-  if(JSON.stringify(selectedSets) ==='["tagSets"]') {
-    return <Button onClick={() => setDataSets(['setTotal'])} className="inline small">Show combined tags</Button>
-  }
-  
-  return null
 }

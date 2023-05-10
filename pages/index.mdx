@@ -1,14 +1,22 @@
 # An Archive of Pining Stats
-import  Chart, { DataContextProvider, MetaSelector, useChartData } from '../components/Chart.tsx'
-import { From, To, SampleSize, Periodically, ShowCombinedTagsIfNotAlreadySelected } from '../components/contextual.tsx'
-import DownloadButtons from '../components/DownloadButtons.tsx'
-import { Callout } from 'nextra-theme-docs'
+import  Chart from '../components/Chart.tsx'
+import  DataContextProvider from '../context/data.tsx'
+import  ChartFilter from '../components/ChartFilter.tsx'
 
+import { From, To, SampleSize, Periodically } from '../components/contextual.tsx'
+import { DownloadAggregates, DownloadSupplements, DownloadQueerness} from '../components/DownloadButtons.tsx'
+import { Callout } from 'nextra-theme-docs'
 import { Steps } from 'nextra-theme-docs'
+import { Tooltip } from 'react-tooltip'
+
+import "react-datepicker/dist/react-datepicker.css";
+import 'react-tooltip/dist/react-tooltip.css'
+
  
 Welcome! This is a short and hastily thrown together project to extract trend information about certain Pining-related tags from the [Ao3 2021 Selective data dump for fan statisticians](https://archiveofourown.org/admin_posts/18804)
 
 <DataContextProvider>
+
 ## About the source data
 <Callout emoji="🤓">
   This is an overview, more detailed information [here](#source-data)
@@ -51,32 +59,46 @@ Please note that the [Yearning](https://archiveofourown.org/tags/yearning) tag i
 
 ## Presentation
   #### Chart Controls
-  <MetaSelector />
+  <ChartFilter />
+
   ### A history of yearning
   This is a chart representing how many number of works for each of the yearning related tags are published **<Periodically />**.
-  <Chart />
+  <Chart defaultSet="individual" />
+
+  ### Queering yearning
+  <Callout emoji="🏳️‍🌈">
+    What is queerness? Get a definitive answer [here](#defining-queer)
+  </Callout>
+  This chart is about showing how works about yearning break down along the Straight/Gay/Polysexual/Aro lines. Please note that just like in real life, bi erasure is a thing, and in this case happens because works tend to center the pairing itself (M/M, F/F, M/F) rather than characters sexualities.
+  <Chart defaultSet="combined" setTypes={[ "queerTagSets" ]} hideGroupingOptions showArea />
+  
+  ### Yearning queerness in proportion
+  This chart shows the percentage of queer-tag related to the total number of works for that period. This will give a hint, but it is possible that a work is counted twice, if for example, a work is tagged with both "M/M" and "F/M".
+  
+  The observant reader might note that the beginning of this graph is a _LOT_ more unstable than it is later, this is due to the comparatively small number of data being published making just couple of works a day have a large impact on the graph.
+  <Chart useRelativeData stacked defaultSet="none" setTypes={[ "queerTagSets" ]} hideGroupingOptions showArea />
   
   ### Absolute yearning in context
-  The below chart is with the added line of EVERYTHING EVER SUBMITTED TO AO3 (of which yearning takes up a non-trivial percentage). <ShowCombinedTagsIfNotAlreadySelected />
-  <Chart showTotals />
+  The below chart is with the added line of EVERYTHING EVER SUBMITTED TO AO3 (of which yearning takes up a non-trivial percentage).
+  <Chart setTypes={[ "grandTotal" ]} showTotals />
   
   ### Relative yearning
   Since all of Ao3 has seen an increase in works over the years, it might be more interesting to see the relative increase in works for each of the tags. This chart shows the **<Periodically />** percentage of works, compared to the total number of works for that period.
   
-  <ShowCombinedTagsIfNotAlreadySelected />
   <Chart useRelativeData />
 
   ### Relative yearning in context
-  This chart compares the relative increase in works for each of the tags, compared to the total number of works for that period, with the relative increase in works for all of Ao3. <ShowCombinedTagsIfNotAlreadySelected /> Please note that 
+  This chart compares the relative increase in works for each of the tags, compared to the total number of works for that period, with the relative increase in works for all of Ao3.
   <Callout emoji="🤓">
     This chart compares two different types of data, and as such, the Y-axis is not directly comparable between the two lines. 
-    
     The gray line is how many works has been submitted to Ao3, and is meant to give an idea of the growth rate of the website, and the other lines show what percentage of those works are tagged with the selected tags.
   </Callout>
-  <Chart showTotals useRelativeData />
+  <Chart  setTypes={[ "grandTotal" ]} useRelativeData />
+
   ### Relative yearning compared with popular cousins.
   In this chart we compare the `yearning` related tags to some of the most popular tags on Ao3; _`Fluff`_, _`AU`_ and _`Angst`_, in order to be able to compare the growth of yearning with what might be expected on the website.
-  <Chart useRelativeData withComparison />
+  <Chart  setTypes={[ "comparisonTagSets" ]} useRelativeData />
+
 
 
 
@@ -91,7 +113,8 @@ In its initial form the data comes in two files, `tags-20210226.csv` and `works-
 
 Processing these many records takes a long time, especially when parsing is involved, so the data has to be simplified.
 
-#### `tags-20210226.csv (14,467,138 records)`
+#### `tags-20210226.csv`
+`14,467,138 records - 581,5MiB`
 | id | type| name| canonical| cached_count| merger_id |
 | :----- | :----: | :----: | :----: |:----: |  ----: |
 | 1 | Media| TV Shows| true| 910| 
@@ -105,7 +128,8 @@ Processing these many records takes a long time, especially when parsing is invo
 |6720|Relationship|Clark Kent/OFC|false|8|11395045|
 |6721|Relationship|Redacted|false|2|12721|
 
-#### `works-20210226.csv (7,269,693 records)`
+#### `works-20210226.csv`
+`7,269,693 records - 968,1MiB`
 |creation date|language|restricted|complete|word_count|tags |
 | :----- | :----: | :----: | :----: | :----: | :---- |
 |2021-02-26|en|false|true|388|10+414093+1001939+4577144+1499536+110+4682892+21+16 |
@@ -132,17 +156,12 @@ In order to make this dataset more manageable, we filter out all tags that match
 
 This step is just number crunching, counting the following statistics:
   - How many works are published per day per selected tag
+  - How many of those works have an associated "queerness" tag.
   - How many works are published per day in total
   - How many works are published per day per selected tag, compared to the total number of works published that day (To determine relative growth rate)
   - How many works are published per day, compared to the total number of works ever (To determine growth rate)
  
 </Steps>
-
-## Downloads
-
-### CSV Files
-
-<DownloadButtons />
 
 ## Source data
 
@@ -151,7 +170,9 @@ The availbable data spans between **<From />** and **<To />**.
 
 The total sample size that this project covers is **<SampleSize/>** works.
 
-### `tags-20210226.csv (14,467,138 records)`
+### `tags-20210226.csv`
+`14,467,138 records - 581,5MiB`
+
 ####  ID
 The ID of the tag
 ####  Type 
@@ -176,7 +197,8 @@ The rough number of works that are tagged with this tag.
 ####  Merger ID
 If the tag is not canonical, then this is the ID of the canonical tag that it is folded into.
  
-### `works-20210226.csv (7,269,693 records)`
+### `works-20210226.csv`
+`7,269,693 records - 968,1MiB`
 #### Creation date
 Date of creation, in the format `YYYY-MM-DD`
 #### Language
@@ -190,4 +212,51 @@ The word count of the work.
 #### Tags
 IDs of the tags that the work is tagged with, separated by `+`.
 
+## Defining Queer
+
+This project extracts data whether a project has queer tags or not, but what does that mean?
+Sadly, it's difficult to define what is queer and what isn't, but I have tried to do so in the following way:
+
+### Queer tags
+Using tags for defining how to "count" a work can be difficult, as tags are both contextual and subjective, and frankly, all over the place.
+I use a loose matching system where a tag only needs to partly match any of the search terms, and then it is considered a match. 
+
+For example: "Bisexual" matches "Bisexual mess". This is not ideal, but it is the best I can do with the time I have.
+
+The following tags have been considered tags that define the "sexuality" of a work:
+
+#### Gay
+  - [M/M](https://archiveofourown.org/tags/M*s*M)
+  - [F/F](https://archiveofourown.org/tags/F*s*F)
+  - [Gay](https://archiveofourown.org/tags/Gay)
+  - [Lesbian](https://archiveofourown.org/tags/Lesbian%20Character)
+
+#### Straight
+  - [F/M](https://archiveofourown.org/tags/F*s*M)
+  - [M/F](https://archiveofourown.org/tags/M*s*F)
+  - [Straight](https://archiveofourown.org/tags/Straight)
+
+#### Straight
+  - [Bisexual](https://archiveofourown.org/tags/Bisexual)
+  - [Pansexual character](https://archiveofourown.org/tags/Pansexual%20character)
+  - [Polysexual](https://archiveofourown.org/tags/Polysexual)
+
+#### Aromantic / Asexual
+  [Asexual](https://archiveofourown.org/tags/Asexual)
+  [Aromantic](https://archiveofourown.org/tags/Aromantic)
+
+The way that this filtering system is implemented, it will catch non-canonical tags like "ultra gay", but sadly also "not gay". This is therefore to be considered a rough estimate, and not a definitive source of data.
+
+
+## Downloads
+
+### CSV Files
+Aggregate files relating to yearning and work statistics for Ao3.
+<DownloadAggregates />
+Aggregate files relating to tags comparable to yearning
+<DownloadSupplements />
+Aggregate files relating to queer tags.
+<DownloadQueerness />
+
 </DataContextProvider>
+<Tooltip id="tooltipper" />
